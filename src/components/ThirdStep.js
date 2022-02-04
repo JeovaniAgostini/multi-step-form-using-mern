@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import { Country, State, City } from 'country-state-city';
-// import axios from 'axios';
-// import { BASE_API_URL } from '../utils/constants';
+import axios from 'axios';
+import { BASE_API_URL } from '../utils/constants';
 import { motion } from 'framer-motion/dist/framer-motion';
 import Swal from 'sweetalert2';
+import { useNavigate } from 'react-router-dom';
 
 const ThirdStep = (props) => {
     const [countries, setCountries] = useState([]);
     const [states, setStates] = useState([]);
     const [cities, setCities] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    let navigate = useNavigate();
 
     const [selectedCountry, setSelectedCountry] = useState('');
     const [selectedState, setSelectedState] = useState('');
@@ -104,7 +106,42 @@ const ThirdStep = (props) => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        Swal.fire('Awesome!', "You're successfully registered!", 'success')
+
+        try {
+            const { user } = props;
+            const updatedData = {
+                country: countries.find(
+                    (country) => country.isoCode === selectedCountry
+                )?.name,
+                state:
+                    states.find((state) => state.isoCode === selectedState)?.name || '',
+                city: selectedCity
+            };
+
+            console.log(updatedData);
+
+            await axios.post(`${BASE_API_URL}/register`, {
+                ...user,
+                ...updatedData
+            });
+
+            Swal.fire('Awesome!', "You're successfully registered!", 'success').then(
+                (result) => {
+                    if (result.isConfirmed || result.isDismissed) {
+                        props.resetUser();
+                        navigate('/');
+                    }
+                }
+            );
+        } catch (error) {
+            if (error.response) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Oops...',
+                    text: error.response.data
+                });
+            }
+        }
     };
 
     return (
